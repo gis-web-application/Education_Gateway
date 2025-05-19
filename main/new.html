@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Trails of Bhutan: Explore Schools & Colleges</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+        #sidebar {
+            width: 260px; /* Changed from 350px to 260px */
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        #map {
+            flex: 1;
+        }
+        .filter-container {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .filter-btn {
+            display: inline-block;
+            padding: 5px 10px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .filter-btn.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+        .search-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        #search-input {
+            width: 70%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 3px 0 0 3px;
+        }
+        #search-btn {
+            width: 30%;
+            padding: 8px;
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 0 3px 3px 0;
+            cursor: pointer;
+        }
+        #search-suggestions {
+            position: absolute;
+            top: 38px;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 0 0 3px 3px;
+            z-index: 10;
+            display: none;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .location-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .location-item:hover {
+            background-color: #f1f3f5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .location-item h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #212529;
+        }
+        .location-item p {
+            margin: 5px 0;
+            color: #495057;
+            font-size: 14px;
+        }
+        .location-type {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #495057;
+            margin-top: 5px;
+        }
+        .custom-marker div {
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        .custom-marker i {
+            transform: rotate(45deg);
+            font-size: 14px;
+        }
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .sidebar-header h1 {
+            font-size: 20px;
+            margin: 0;
+            color: #0d6efd;
+        }
+        .sidebar-header p {
+            font-size: 14px;
+            color: #6c757d;
+            margin: 5px 0 0;
+        }
+        .location-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none; /* Initially hidden until image loads */
+        }
+        .leaflet-popup-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        .school-location-btn {
+            margin-top: 5px;
+            width: 100%;
+            background: #0d6efd;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            padding: 6px 0;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: background 0.2s;
+        }
+        .school-location-btn:hover {
+            background: #0b5ed7;
+            color: #fff;
+        }
+        .about-us-btn {
+            margin-top: 15px;
+            width: 100%;
+            background: #20c997;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            padding: 10px 0;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            letter-spacing: 1px;
+            transition: background 0.2s;
+        }
+        .about-us-btn:hover {
+            background: #138f6a;
+            color: #fff;
+        }
+
+        /* Modal styles */
+        #about-us-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #about-us-modal-content {
+            background: #fff;
+            border-radius: 10px;
+            padding: 30px 40px;
+            max-width: 500px;
+            width: 90vw;
+            position: relative;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        #about-us-modal-content img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-bottom: 10px;
+            border: 3px solid #20c997;
+        }
+        #about-us-modal-content h2 {
+            margin: 10px 0 5px 0;
+            color: #20c997;
+        }
+        #about-us-modal-content p {
+            margin: 5px 0 10px 0;
+            color: #495057;
+        }
+        #close-about-us-modal {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            font-size: 28px;
+            color: #888;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #about-us-team {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            justify-content: center;
+        }
+        .about-us-member {
+            flex: 1 1 180px;
+            max-width: 180px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 8px 10px 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+            margin-bottom: 10px;
+        }
+        .about-us-member h3 {
+            margin: 8px 0 4px 0;
+            font-size: 17px;
+            color: #20c997;
+        }
+        .about-us-member p {
+            font-size: 13px;
+            margin: 0;
+            color: #555;
+        }
+
+        /* About Map Modal styles */
+        #about-map-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #about-map-modal > div {
+            background: #fff;
+            padding: 32px 28px 24px 28px;
+            border-radius: 12px;
+            max-width: 420px;
+            width: 90vw;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+            position: relative;
+            text-align: center;
+        }
+        #about-map-modal h2 {
+            color: #20c997;
+            margin-bottom: 10px;
+        }
+        #about-map-modal p {
+            color: #444;
+            font-size: 1.08rem;
+            margin-bottom: 10px;
+        }
+        #close-about-map-modal {
+            position: absolute;
+            top: 10px;
+            right: 18px;
+            font-size: 28px;
+            color: #888;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Share Modal styles */
+        #share-map-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        #share-map-modal > div {
+            background: #fff;
+            padding: 28px 24px 20px 24px;
+            border-radius: 12px;
+            max-width: 350px;
+            width: 90vw;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+            position: relative;
+            text-align: center;
+        }
+        #share-map-modal h2 {
+            color: #0d6efd;
+            margin-bottom: 10px;
+        }
+        #share-map-modal p {
+            color: #444;
+            font-size: 1.05rem;
+            margin-bottom: 10px;
+        }
+        #share-map-link {
+            width: 90%;
+            padding: 7px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        #copy-share-link-btn,
+        #native-share-btn {
+            background: #20c997;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 7px 18px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #copy-share-link-btn i,
+        #native-share-btn i {
+            margin-right: 5px;
+        }
+        #share-success-msg {
+            color: #20c997;
+            font-size: 0.98rem;
+            margin-top: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h1>Knowledge Trails Map</h1>
+                <p>Discover Bhutan's Schools & Colleges</p>
+            </div>
+            
+            <div class="search-container" style="position:relative;">
+                <input type="text" id="search-input" placeholder="Search schools..." autocomplete="off">
+                <button id="search-btn"><i class="fas fa-search"></i></button>
+                <div id="search-suggestions" style="position:absolute;top:38px;left:0;width:100%;background:#fff;border:1px solid #ced4da;border-radius:0 0 3px 3px;z-index:10;display:none;max-height:180px;overflow-y:auto;"></div>
+            </div>
+            
+            <div class="filter-container">
+                <h3>Filter by Type:</h3>
+                <button class="filter-btn" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="higher">High School</button>
+                <button class="filter-btn" data-filter="college">Colleges</button>
+                <button class="filter-btn" data-filter="university">Universities</button>
+            </div>
+            
+            <button class="about-us-btn"><i class="fas fa-users"></i> About Us</button>
+            
+            <div id="location-list">
+                <!-- School items will be populated here -->
+            </div>
+        </div>
+        
+        <div id="map"></div>
+        <!-- Geolocate button (already present) -->
+        <button id="geolocate-btn" title="Show My Location" style="position:absolute;top:70px;right:10px;z-index:1000;background:#fff;border:none;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.12);width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <i class="fas fa-location-arrow" style="color:#0d6efd;font-size:20px;"></i>
+        </button>
+        <!-- About Map Info Button -->
+        <button id="about-map-btn" title="About This Map" style="position:absolute;top:130px;right:10px;z-index:1000;background:#fff;border:none;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.12);width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <i class="fas fa-info-circle" style="color:#20c997;font-size:20px;"></i>
+        </button>
+        <!-- Share This Map Button -->
+        <button id="share-map-btn" title="Share This Map" style="position:absolute;top:190px;right:10px;z-index:1000;background:#fff;border:none;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.12);width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <i class="fas fa-share-alt" style="color:#0d6efd;font-size:20px;"></i>
+        </button>
+        <!-- About Map Modal -->
+        <div id="about-map-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+            <div style="background:#fff;padding:32px 28px 24px 28px;border-radius:12px;max-width:420px;width:90vw;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;text-align:center;">
+                <span id="close-about-map-modal" style="position:absolute;top:10px;right:18px;font-size:28px;color:#888;cursor:pointer;font-weight:bold;">&times;</span>
+                <h2 style="color:#20c997;margin-bottom:10px;">About This Map</h2>
+                <p style="color:#444;font-size:1.08rem;margin-bottom:10px;">
+                    <b>Knowledge Trails of Bhutan</b> is an interactive map designed to help users explore, search, and learn about schools and colleges across Bhutan. With a user-friendly interface, you can filter institutions by type, search by name, and view detailed information about each location. The map includes helpful features such as geolocation, fullscreen view, and a scale bar to enhance your browsing experience. Whether you are a student, parent, educator, or researcher, this map serves as a comprehensive guide to Bhutan’s educational landscape, making it easier to discover and connect with institutions throughout the country.
+                </p>
+                <p style="color:#444;font-size:1.08rem;margin-bottom:10px;">
+                    This interactive Bhutan Schools & Colleges Map helps students, parents, and educators easily explore educational institutions across Bhutan. With just a few clicks, users can find schools, colleges, and universities, check details like student capacity and establishment year, and even visit official websites. The map also supports tourism by letting visitors discover Bhutan’s academic landscape alongside cultural sites. For policymakers and NGOs, it provides a clear view of school locations, helping identify areas needing more educational resources. Simple search and filter tools make it easy to use on both mobile and desktop, making it a handy tool for anyone interested in Bhutan’s education system. 🏫📍
+                </p>
+                <p style="color:#888;font-size:0.98rem;margin-top:10px;">
+                    All data is provided for educational and informational purposes.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="about-us-modal" style="display:none;">
+        <div id="about-us-modal-content">
+            <span id="close-about-us-modal">&times;</span>
+            <h2>Our Team</h2>
+            <div id="about-us-team">
+                <!-- Team members will be injected here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional: Share Modal -->
+    <div id="share-map-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:28px 24px 20px 24px;border-radius:12px;max-width:350px;width:90vw;box-shadow:0 4px 24px rgba(0,0,0,0.18);position:relative;text-align:center;">
+            <span id="close-share-map-modal" style="position:absolute;top:10px;right:18px;font-size:28px;color:#888;cursor:pointer;font-weight:bold;">&times;</span>
+            <h2 style="color:#0d6efd;margin-bottom:10px;">Share This Map</h2>
+            <p style="color:#444;font-size:1.05rem;margin-bottom:10px;">
+                Copy the link below or share directly:
+            </p>
+            <input id="share-map-link" type="text" style="width:90%;padding:7px 8px;border:1px solid #ced4da;border-radius:4px;margin-bottom:10px;" readonly>
+            <button id="copy-share-link-btn" style="background:#20c997;color:#fff;border:none;border-radius:4px;padding:7px 18px;cursor:pointer;font-weight:bold;">
+                <i class="fas fa-copy"></i> Copy Link
+            </button>
+            <div style="margin-top:12px;">
+                <button id="native-share-btn" style="background:#0d6efd;color:#fff;border:none;border-radius:4px;padding:7px 18px;cursor:pointer;font-weight:bold;">
+                    <i class="fas fa-share-square"></i> Share
+                </button>
+            </div>
+            <div id="share-success-msg" style="color:#20c997;font-size:0.98rem;margin-top:8px;display:none;">Link copied!</div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+    <!-- Add Leaflet plugins for fullscreen and locate control -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.css" />
+    <script src="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol@0.81.0/dist/L.Control.Locate.min.css" />
+    <script src="https://unpkg.com/leaflet.locatecontrol@0.81.0/dist/L.Control.Locate.min.js"></script>
+    <script>
+        // Icon configuration for different school types
+        const iconConfig = {
+            primary: { icon: 'school', color: '#3498db' },
+            secondary: { icon: 'graduation-cap', color: '#2ecc71' },
+            higher: { icon: 'university', color: '#e74c3c' },
+            college: { icon: 'book', color: '#9b59b6' },
+            university: { icon: 'graduation-cap', color: '#f39c12' },
+            default: { icon: 'map-marker-alt', color: '#7f8c8d' }
+        };
+
+        // Define base layers
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        });
+        
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+
+        // Add a new base layer: OpenTopoMap
+        const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
+        });
+
+        // Add a new base layer: Hybrid (satellite + labels)
+        const hybrid = L.layerGroup([
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri'
+            }),
+            L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Labels &copy; Esri',
+                pane: 'overlayPane'
+            })
+        ]);
+
+        // Create the map centered on Bhutan
+        const map = L.map('map', {
+            center: [27.5142, 90.4336], // Central Bhutan coordinates
+            zoom: 8,
+            layers: [osm] // Default layer
+        });
+
+        // Add layer control
+        const baseLayers = {
+            "OpenStreetMap": osm,
+            "Satellite": satellite,
+            "Topo Map": topo,
+            "Hybrid": hybrid
+        };
+        L.control.layers(baseLayers).addTo(map);
+
+        // Create a feature group to store all markers
+        const markers = L.featureGroup().addTo(map);
+
+        // Function to create custom marker icon
+        function createCustomIcon(feature) {
+            const type = feature.properties.type || 'default';
+            const config = iconConfig[type] || iconConfig.default;
+            
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${config.color}">
+                         <i class="fas fa-${config.icon}"></i>
+                       </div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 30],
+                popupAnchor: [0, -30]
+            });
+        }
+
+        // Sample data for Bhutan institutions
+        const bhutanInstitutions = {
+            type: "FeatureCollection",
+            features: [
+                // UNIVERSITIES
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Royal University of Bhutan (Headquarters)",
+                        type: "university",
+                        description: "National university with 11 constituent colleges",
+                        students: 7226,
+                        established: 2003,
+                        location: "Thimphu",
+                        website: "www.rub.edu.bt",
+                        image: "./SCHOOL/RUB.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.628121, 27.478840]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Khesar Gyalpo University of Medical Sciences",
+                        type: "university",
+                        description: "A premier centre of excellence in medical education, research and quality healthcare.",
+                        students: 850,
+                        established: 2014,
+                        location: "Thimphu",
+                        website: "www.kgumsb.edu.bt",
+                        image: "./SCHOOL/FNPH.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.638421, 27.462417]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Institute of Traditional Medical Services",
+                        type: "university",
+                        description: "Specialized in traditional medicine education",
+                        students: 600,
+                        established: 2017,
+                        location: "Thimphu",
+                        website: "www.buhs.edu.bt",
+                        image: "./SCHOOL/Institute of Traditional Medical Services.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.629433, 27.480287]
+                    }
+                },
+
+                // COLLEGES UNDER RUB
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Sherubtse College",
+                        type: "college",
+                        description: "An internationally recognized institute in Liberal Arts and Sciences with an emphasis on GNH value based learning",
+                        students: 934,
+                        established: 1966,
+                        location: "Kanglung, Trashigang",
+                        website: "www.sherubtse.edu.bt",
+                        image: "./SCHOOL/Sherubtse.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [91.523590, 27.286781]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "College of Science and Technology",
+                        type: "college",
+                        description: "A centre of excellence in science and technology enriched with GNH values. ",
+                        students: 1175,
+                        established: 2000,
+                        location: "Rinchending, Phuentsholing",
+                        website: "www.cst.edu.bt",
+                        image: "./SCHOOL/CST.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.394004, 26.850176]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "College of Natural Resources",
+                        type: "college",
+                        description: "The College of Natural Resources will strive to be a dynamic and internationally recognized centre of learning that promotes GNH and sustainable development through leadership in education, research and professional services in Agriculture, Natural Resources Management and Rural Developmen",
+                        students: 627 ,
+                        established: 2003,
+                        location: "Lobesa, Punakha",
+                        website: "www.cnr.edu.bt",
+                        image: "./SCHOOL/CNR.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.878563, 27.503563]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Gedu College of Business Studies",
+                        type: "college",
+                        description: "A Centre of Excellence in Value-driven Business Education",
+                        students: 1287,
+                        established: 2003,
+                        location: "Gedu, Chukha",
+                        website: "www.gcbs.edu.bt",
+                        image: "./SCHOOL/GCIT.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.522041, 26.922758]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Jigme Namgyel Engineering College",
+                        type: "college",
+                        description: "A premier Institute of applied engineering, management and technology towards developing highly competent and innovative technical personnel infused with the values of Gross National Happiness.",
+                        students: 808,
+                        established:1974,
+                        location: "Dewathnag, Samdrup Jongkhar",
+                        website: "www.jnec.edu.bt",
+                        image: "./SCHOOL/JNEC.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [91.464730, 26.860198]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Paro College of Education",
+                        type: "college",
+                        description: "A Leader in Educational Innovation and Progressive Growth Fostered by Excellence in Teaching, Research and Cultural Heritage.",
+                        students: 1217,
+                        established:1975,
+                        location: "Paro",
+                        website: "www.pce.edu.bt",
+                        image: "./SCHOOL/Paro college.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.422760, 27.415925]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Samtse College of Education",
+                        type: "college",
+                        description: "A center of excellence committed to research and innovation in Education",
+                        students: 510,
+                        established:1968,
+                        location: "Samtse",
+                        website: "www.sce.edu.bt",
+                        image: "./SCHOOL/NIE Samtse.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.102992, 26.897885]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Gyelposhing College of Information Technology",
+                        type: "college",
+                        description: "The center of Excellence in information Technology steeped in GNH values",
+                        students: 405,
+                        established:2017,
+                        location: "Kebasa, Thimphu",
+                        website: "www.gcit.edu.bt",
+                        image: "./SCHOOL/GCIT.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.666807, 27.535827]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "College of Language and Culture Studies",
+                        type: "college",
+                        description: "A center of excellence for Bhutanese and Himalayan Studies in consistent with GNH values",
+                        students:263,
+                        established:1961,
+                        location: "Trongsa",
+                        website: "www.clcs.edu.bt",
+                        image: "./SCHOOL/CLCS.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [90.481703, 27.438926]
+                    }
+                },
+                // OTHER COLLEGES
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Royal Thimphu College",
+                        type: "college",
+                        description: "An institution of academic excellence that challenges students to achieve their full potential and to become independent, lifelong learners and well-rounded, responsible citizens",
+                        students: 800,
+                        established: 2009,
+                        location: "Thimphu",
+                        website: "www.rtc.bt",
+                        image: "./SCHOOL/RTC.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.659871, 27.399987]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Norbuling Rigter College",
+                        type: "college",
+                        description: "Advancing Education, Empowering Young Minds",
+                        students: 300,
+                        established: 2012,
+                        location: "Paro",
+                        website: "www.nrb.edu.bt",
+                        image: "./SCHOOL/NRC.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.435240, 27.495011]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Jigme Singye Wangchuck School of Law",
+                        type: "college",
+                        description: "A premier institution for legal education and research, dedicated to nurturing leaders who uphold Justice, Service, and Wisdom",
+                        students: 113,
+                        established: 2015,
+                        location: "Pangbisa, Paro",
+                        website: "https://jswlaw.bt",
+                        image: "./SCHOOL/JSW.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.443142, 27.349831]
+                    }
+                },
+                
+                // HIGHER SECONDARY SCHOOLS
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Yangchenphug Higher Secondary School",
+                        type: "higher",
+                        description: "Bhutan's oldest and most prestigious school, known for academic excellence.",
+                        students: 1465,
+                        established: 1965,
+                        location: "Thimphu",
+                        image: "./SCHOOL/YHSS.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.646486, 27.466710]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Motithang Higher Secondary School",
+                        type: "higher",
+                        description: "To be the centre of Education Excellence in the Nation.",
+                        students: 1100,
+                        established: 1975,
+                        location: "Thimphu",
+                        image: "./SCHOOL/MHSS.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.623053, 27.474964]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Jigme Sherubling Central School",
+                        type: "higher",
+                        description: "Premier school in eastern Bhutan, renowned for holistic education.",
+                        students: 1100,
+                        established: 1979,
+                        location: "Trashigang",
+                        image: "./SCHOOL/JCSC.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [91.601819, 27.206323]
+                    }
+                },
+                // --- Add new unique higher secondary schools below ---
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Phuentsholing Higher Secondary School",
+                        type: "higher",
+                        description: "A leading school nurturing the youth to become responsible and productive Bhutanese citizen.",
+                        students: 765,
+                        established: 1961,
+                        location: "Phuentsholing",
+                        image: "./SCHOOL/PHSS.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.380334, 26.865419]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Taktse Central School",
+                        type: "higher",
+                        description: "Fnurture lifelong learning, foster collaboration in a multicultural setting, and cultivate personal introspection and social responsibility.",
+                        students: 230,
+                        established: null,
+                        location: "Trongsa",
+                        image: "./SCHOOL/TCS.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [90.478095, 27.432053]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Damphu Higher Secondary School",
+                        type: "higher",
+                        description: "Be The Best; Make A Difference.",
+                        students: null,
+                        established: 1951,
+                        location: "Tsirang",
+                        image: "./SCHOOL/DHSS.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [90.123128, 27.024571]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Samtse Higher Secondary School",
+                        type: "higher",
+                        description: "The school aspires to be a model institution of excellence to produce constructive and contributory citizens built on the unique Bhutanese values of Tha Dam-Tsig Ley Gju-Drey, to create a Just and Harmonious society.",
+                        students: 409,
+                        established: 1970,
+                        location: "Samtse",
+                        image: "./SCHOOL/SAM.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.101209, 26.896658]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Zhemgang Higher Secondary School",
+                        type: "higher",
+                        description: "Prominent school in central Bhutan.",
+                        students: 900,
+                        established: 1980,
+                        location: "Zhemgang",
+                        image: "./SCHOOL/ZHSS.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [90.651566, 27.214505]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Karma Academy",
+                        type: "higher",
+                        description: "A Center for Academic Excellence.",
+                        students: 560,
+                        established: 2017,
+                        location: "Paro",
+                        image: "./SCHOOL/KARMA.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.450190, 27.369983]
+                    }
+                },
+                {
+                    type: "Feature",
+                    properties: {
+                        name: "Drugyel Higher Secondary School",
+                        type: "higher",
+                        description: "Nurture students into balanced individuals with sound character, discipline, and a patriotic outlook.",
+                        students: 689,
+                        established: 1994,
+                        location: "Paro",
+                        image: "./SCHOOL/DCS.jpg"
+                    },
+                    geometry: {
+                        type: "Point",
+                        coordinates: [89.333120, 27.484826]
+                    }
+                }
+            ]
+        };
+
+        // Store school images
+        const schoolImages = {};
+
+        // Utility to normalize names for matching
+        function normalizeName(name) {
+            return name ? name.toLowerCase().replace(/[\s\-_\.]/g, '') : '';
+        }
+
+        // Load images from localStorage
+        function loadImagesFromStorage(features) {
+            features.forEach(feature => {
+                if (feature.geometry.type === 'Point') {
+                    const schoolName = normalizeName(feature.properties.name);
+                    const stored = localStorage.getItem('schoolImage_' + schoolName);
+                    if (stored) {
+                        schoolImages[schoolName] = stored;
+                    }
+                }
+            });
+        }
+
+        // Process features and add to map
+        L.geoJSON(bhutanInstitutions, {
+            pointToLayer: function(feature, latlng) {
+                const marker = L.marker(latlng, {
+                    icon: createCustomIcon(feature)
+                });
+
+                // Store the feature type on the marker for filtering
+                marker.featureType = feature.properties.type || 'other';
+
+                const props = feature.properties;
+                let popupContent = `<h3><i class="fas fa-${iconConfig[props.type]?.icon || 'map-marker-alt'}"></i> ${props.name || 'Unnamed School'}</h3>`;
+                popupContent += `<div class="popup-image-container" data-school="${normalizeName(props.name)}"></div>`;
+                popupContent += `<p>${props.description || 'Educational institution in Bhutan'}</p>`;
+                popupContent += `<p><strong><i class="fas fa-users"></i> Students:</strong> ${props.students || 'N/A'}</p>`;
+                popupContent += `<p><strong><i class="fas fa-calendar-alt"></i> Established:</strong> ${props.established || 'N/A'}</p>`;
+                if (props.website) {
+                    popupContent += `<p><strong><i class="fas fa-globe"></i> Website:</strong> <a href="https://${props.website}" target="_blank">${props.website}</a></p>`;
+                }
+
+                marker.bindPopup(popupContent);
+                markers.addLayer(marker);
+
+                marker.on('popupopen', function(e) {
+                    const schoolName = normalizeName(props.name);
+                    const popupDiv = document.querySelector('.leaflet-popup .popup-image-container[data-school="' + schoolName + '"]');
+                    if (popupDiv) {
+                        let imgSrc = schoolImages[schoolName] || props.image || '';
+                        if (imgSrc) {
+                            popupDiv.innerHTML = `<img src="${imgSrc}" alt="${props.name}" style="max-width:200px;max-height:150px;border-radius:5px;">`;
+                        } else {
+                            popupDiv.innerHTML = '';
+                        }
+                    }
+                });
+
+                return marker;
+            }
+        }).addTo(map);
+
+        // Fit map to bounds
+        map.fitBounds(markers.getBounds());
+
+        // Update images in sidebar and popups
+        function updateImagesInApp() {
+            // Update markers
+            markers.eachLayer(layer => {
+                if (layer.feature && layer.feature.properties.name) {
+                    const schoolName = normalizeName(layer.feature.properties.name);
+                    // If popup is open, update its image
+                    if (layer.isPopupOpen && layer.isPopupOpen()) {
+                        const popupDiv = document.querySelector('.leaflet-popup .popup-image-container[data-school="' + schoolName + '"]');
+                        if (popupDiv) {
+                            let imgSrc = schoolImages[schoolName] || layer.feature.properties.image || '';
+                            if (imgSrc) {
+                                popupDiv.innerHTML = `<img src="${imgSrc}" alt="${layer.feature.properties.name}" style="max-width:200px;max-height:150px;border-radius:5px;">`;
+                            } else {
+                                popupDiv.innerHTML = '';
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Update sidebar
+            document.querySelectorAll('.location-item').forEach(item => {
+                const schoolName = normalizeName(item.dataset.name);
+                const img = item.querySelector('img');
+                if (schoolImages[schoolName]) {
+                    if (img) {
+                        img.src = schoolImages[schoolName];
+                        img.style.display = 'block';
+                    }
+                } else if (img && img.getAttribute('src')) {
+                    img.style.display = img.getAttribute('src') ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Populate the school list sidebar
+        function populateSchoolList(features) {
+            const locationList = document.getElementById('location-list');
+            locationList.innerHTML = '';
+            
+            features.forEach(feature => {
+                if (feature.geometry.type === 'Point') {
+                    const props = feature.properties;
+                    const type = props.type || 'other';
+                    const config = iconConfig[type] || iconConfig.default;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'location-item';
+                    item.dataset.type = type;
+                    item.dataset.name = normalizeName(props.name);
+                    
+                    item.innerHTML = `
+                        <h3><i class="fas fa-${config.icon}"></i> ${props.name}</h3>
+                        <img src="${props.image ? props.image : ''}" alt="${props.name}" style="${props.image ? 'display:block;' : 'display:none;'}">
+                        <p>${props.description || 'Educational institution in Bhutan'}</p>
+                        <p><i class="fas fa-users"></i> Students: ${props.students || 'N/A'}</p>
+                        <p><i class="fas fa-calendar-alt"></i> Established: ${props.established || 'N/A'}</p>
+                        ${props.website ? `<p><i class="fas fa-globe"></i> Website: ${props.website}</p>` : ''}
+                        <span class="location-type">${type}</span>
+                        <div>
+                            <button class="school-location-btn"><i class="fas fa-map-marker-alt"></i> Show on Map</button>
+                        </div>
+                    `;
+                    
+                    // Click handler to zoom to school
+                    item.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('school-location-btn')) return;
+                        const latlng = L.GeoJSON.coordsToLatLng(feature.geometry.coordinates);
+                        map.setView(latlng, 16);
+                        markers.eachLayer(layer => {
+                            if (
+                                layer.feature &&
+                                layer.feature.properties.name === props.name &&
+                                layer.getLatLng() &&
+                                layer.getLatLng().equals(latlng)
+                            ) {
+                                map.addLayer(layer);
+                                layer.setOpacity(1);
+                            } else {
+                                map.removeLayer(layer);
+                            }
+                        });
+                    });
+
+                    const locationBtn = item.querySelector('.school-location-btn');
+                    locationBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const latlng = L.GeoJSON.coordsToLatLng(feature.geometry.coordinates);
+                        map.setView(latlng, 16);
+                        markers.eachLayer(layer => {
+                            if (
+                                layer.feature &&
+                                layer.feature.properties.name === props.name &&
+                                layer.getLatLng() &&
+                                layer.getLatLng().equals(latlng)
+                            ) {
+                                map.addLayer(layer);
+                                layer.setOpacity(1);
+                                layer.openPopup();
+                            } else {
+                                map.removeLayer(layer);
+                            }
+                        });
+                    });
+
+                    locationList.appendChild(item);
+                }
+            });
+            
+            // Update images if any were already loaded
+            updateImagesInApp();
+        }
+
+        // Set up filter buttons
+        function setupFilterButtons() {
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active button
+                    buttons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const filter = this.dataset.filter;
+                    
+                    // Filter markers
+                    markers.eachLayer(layer => {
+                        if (filter === 'all' || layer.featureType === filter) {
+                            map.addLayer(layer);
+                            layer.setOpacity(1);
+                        } else {
+                            layer.setOpacity(0.3);
+                        }
+                    });
+                    
+                    // Filter school list
+                    const locationItems = document.querySelectorAll('.location-item');
+                    locationItems.forEach(item => {
+                        if (filter === 'all' || item.dataset.type === filter) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        }
+
+        // --- Add this function for search suggestions ---
+        function setupSearch() {
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+            const suggestionsDiv = document.getElementById('search-suggestions');
+
+            // Get all school names for suggestions
+            const allSchoolNames = bhutanInstitutions.features
+                .filter(f => f.geometry.type === 'Point')
+                .map(f => f.properties.name);
+
+            function showSuggestions(query) {
+                suggestionsDiv.innerHTML = '';
+                if (!query || query.length !== 1) {
+                    suggestionsDiv.style.display = 'none';
+                    return;
+                }
+                const lowerQuery = query.toLowerCase();
+                // Show names that start with the letter (case-insensitive)
+                const matches = allSchoolNames.filter(name => name.toLowerCase().startsWith(lowerQuery));
+                if (matches.length === 0) {
+                    suggestionsDiv.style.display = 'none';
+                    return;
+                }
+                matches.forEach(name => {
+                    const div = document.createElement('div');
+                    div.textContent = name;
+                    div.style.padding = '8px 12px';
+                    div.style.cursor = 'pointer';
+                    div.onmouseover = () => div.style.background = '#f1f3f5';
+                    div.onmouseout = () => div.style.background = '#fff';
+                    div.onclick = () => {
+                        searchInput.value = name;
+                        suggestionsDiv.style.display = 'none';
+                        performSearch();
+                    };
+                    suggestionsDiv.appendChild(div);
+                });
+                suggestionsDiv.style.display = 'block';
+            }
+
+            function performSearch() {
+                const query = searchInput.value.toLowerCase().trim();
+                suggestionsDiv.style.display = 'none';
+
+                // Filter school list
+                const locationItems = document.querySelectorAll('.location-item');
+                let hasResults = false;
+
+                locationItems.forEach(item => {
+                    if (normalizeName(item.dataset.name).includes(normalizeName(query))) {
+                        item.style.display = 'block';
+                        hasResults = true;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Filter markers
+                markers.eachLayer(layer => {
+                    if (layer.feature && layer.feature.properties.name) {
+                        const schoolName = normalizeName(layer.feature.properties.name);
+                        if (schoolName.includes(normalizeName(query))) {
+                            map.addLayer(layer);
+                            layer.setOpacity(1);
+                        } else {
+                            layer.setOpacity(0.3);
+                        }
+                    }
+                });
+            }
+
+            searchBtn.addEventListener('click', performSearch);
+
+            searchInput.addEventListener('keyup', function(event) {
+                const value = searchInput.value;
+                // Show suggestions for a single alphabet
+                if (value.length === 1 && /^[a-zA-Z]$/.test(value)) {
+                    showSuggestions(value);
+                } else {
+                    suggestionsDiv.style.display = 'none';
+                }
+                if (event.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+                    suggestionsDiv.style.display = 'none';
+                }
+            });
+        }
+
+        // Example team data (update with your real info and images)
+        const teamMembers = [
+            {
+                name: "Phuntsho Norbu",
+                students: "05210064",
+                photo: "./Member/PN.jpg"
+            },
+            {
+                name: "Sangay Choden",
+                students: "05210065",
+                photo: "./Member/SC.jpg"
+            },
+            {
+                name: "Sangay Dorji",
+                students: "05210066",
+                photo: "./Member/SD.jpg"
+            },
+            {
+                name: "Sangay Wangchuk",
+                students: "05210067",
+                photo: "./Member/SW.jpg"
+            }
+        ];
+
+        // Show About Us modal and populate team
+        document.querySelector('.about-us-btn').onclick = function() {
+            const teamDiv = document.getElementById('about-us-team');
+            teamDiv.innerHTML = '';
+            teamMembers.forEach(member => {
+                const div = document.createElement('div');
+                div.className = 'about-us-member';
+                div.innerHTML = `
+                    <img src="${member.photo}" alt="${member.name}">
+                    <h3>${member.name}</h3>
+                    <p><strong>Student No:</strong> ${member.students}</p>
+                `;
+                teamDiv.appendChild(div);
+            });
+            document.getElementById('about-us-modal').style.display = 'flex';
+        };
+
+        // Close modal
+        document.getElementById('close-about-us-modal').onclick = function() {
+            document.getElementById('about-us-modal').style.display = 'none';
+        };
+        // Also close modal when clicking outside the content
+        document.getElementById('about-us-modal').onclick = function(e) {
+            if (e.target === this) this.style.display = 'none';
+        };
+
+        let geolocatorActive = false;
+
+        document.getElementById('geolocate-btn').onclick = function() {
+            // If already active, turn off geolocator and remove marker
+            if (geolocatorActive) {
+                if (window._userLocationMarker) {
+                    map.removeLayer(window._userLocationMarker);
+                    window._userLocationMarker = null;
+                }
+                geolocatorActive = false;
+                // Change button color/icon to indicate OFF
+                this.style.background = "#fff";
+                this.querySelector('i').style.color = "#0d6efd";
+                this.title = "Show My Location";
+                return;
+            }
+
+            // Otherwise, activate geolocator
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    // Add or move a marker for user location
+                    if (window._userLocationMarker) {
+                        window._userLocationMarker.setLatLng([lat, lng]);
+                    } else {
+                        window._userLocationMarker = L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: `<div style="background:#20c997"><i class="fas fa-user"></i></div>`,
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 30],
+                                popupAnchor: [0, -30]
+                            })
+                        }).addTo(map).bindPopup('You are here!');
+                    }
+                    map.setView([lat, lng], 14);
+                    window._userLocationMarker.openPopup();
+                    geolocatorActive = true;
+                    // Change button color/icon to indicate ON
+                    document.getElementById('geolocate-btn').style.background = "#20c997";
+                    document.getElementById('geolocate-btn').querySelector('i').style.color = "#fff";
+                    document.getElementById('geolocate-btn').title = "Turn Off Geolocator";
+                },
+                function() {
+                    alert('Unable to retrieve your location.');
+                }
+            );
+        };
+
+        // About Map Info Button logic
+        document.getElementById('about-map-btn').onclick = function() {
+            document.getElementById('about-map-modal').style.display = 'flex';
+        };
+        document.getElementById('close-about-map-modal').onclick = function() {
+            document.getElementById('about-map-modal').style.display = 'none';
+        };
+        document.getElementById('about-map-modal').onclick = function(e) {
+            if (e.target === this) this.style.display = 'none';
+        };
+
+        // Share button logic
+        document.getElementById('share-map-btn').onclick = function() {
+            // Set the link to current page with map view (if possible)
+            let url = window.location.href;
+            if (map && map.getCenter) {
+                const center = map.getCenter();
+                const zoom = map.getZoom();
+                // Add map position as query string
+                url = url.split('?')[0] + `?lat=${center.lat.toFixed(5)}&lng=${center.lng.toFixed(5)}&zoom=${zoom}`;
+            }
+            document.getElementById('share-map-link').value = url;
+            document.getElementById('share-success-msg').style.display = 'none';
+            document.getElementById('share-map-modal').style.display = 'flex';
+        };
+
+        document.getElementById('close-share-map-modal').onclick = function() {
+            document.getElementById('share-map-modal').style.display = 'none';
+        };
+        document.getElementById('share-map-modal').onclick = function(e) {
+            if (e.target === this) this.style.display = 'none';
+        };
+
+        // Copy link to clipboard
+        document.getElementById('copy-share-link-btn').onclick = function() {
+            const input = document.getElementById('share-map-link');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            document.getElementById('share-success-msg').style.display = 'block';
+        };
+
+        // Native share (if supported)
+        document.getElementById('native-share-btn').onclick = function() {
+            const url = document.getElementById('share-map-link').value;
+            if (navigator.share) {
+                navigator.share({
+                    title: document.title,
+                    text: "Explore Bhutan's Schools & Colleges Map",
+                    url: url
+                });
+            } else {
+                alert('Native sharing is not supported on this device.');
+            }
+        };
+
+        // Initialize everything
+        function init() {
+            loadImagesFromStorage(bhutanInstitutions.features);
+            populateSchoolList(bhutanInstitutions.features);
+            setupFilterButtons();
+            setupSearch();
+        }
+
+        init();
+
+        // Add scale control (bottom left)
+        L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
+
+        // Add fullscreen control (top right)
+        map.addControl(new L.Control.Fullscreen({
+            position: 'topright',
+            title: {
+                'false': 'View Fullscreen',
+                'true': 'Exit Fullscreen'
+            }
+        }));
+
+        // Add locate control (bottom right, as an alternative to your button)
+        L.control.locate({
+            position: 'bottomright',
+            flyTo: true,
+            showPopup: false,
+            icon: 'fas fa-crosshairs',
+            strings: {
+                title: "Show me where I am"
+            }
+        }).addTo(map);
+
+        // Optionally, you can remove your custom geolocate button if you prefer the plugin's button.
+        // Otherwise, keep both for user preference.
+    </script>
+</body>
+</html>
